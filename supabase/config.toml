@@ -1,0 +1,2 @@
+[functions.search-movies]
+verify_jwt = true

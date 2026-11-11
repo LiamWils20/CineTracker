@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineTrack</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <main id="loginView" class="login-view">
+        <div class="login-card">
+            <div class="brand-mark" aria-hidden="true"><span class="brand-icon"></span></div>
+            <h1>CineTrack</h1>
+            <p>Keep all your movies and shows in one place.</p>
+            <button id="loginButton" class="btn btn-primary" type="button">Sign in with Google</button>
+            <p class="login-note">Sign in to view and manage your collection.</p>
+        </div>
+    </main>
+
+    <div id="authenticatedView" class="page-shell" hidden>
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-mark" aria-hidden="true"><span class="brand-icon"></span></div>
+                <div class="brand-copy">
+                    <h1>CineTrack</h1>
+                    <small>Movie Tracker</small>
+                </div>
+            </div>
+
+            <div class="stats-panel" aria-label="Collection statistics">
+                <div class="stat-item"><span>Total</span><strong id="totalCount">0</strong></div>
+                <div class="stat-item"><span>Watched</span><strong id="watchedCount">0</strong></div>
+                <div class="stat-item"><span>Watchlist</span><strong id="watchlistCount">0</strong></div>
+            </div>
+
+            <nav class="sidebar-nav" aria-label="Main navigation">
+                <button class="nav-item active" type="button" data-view="home">
+                    <span class="nav-icon home-icon" aria-hidden="true"></span>Home
+                </button>
+                <button class="nav-item" type="button" data-view="planned">
+                    <span class="nav-icon watchlist-icon" aria-hidden="true"></span>Watchlist
+                </button>
+                <button class="nav-item" type="button" data-view="watched">
+                    <span class="nav-icon watched-icon" aria-hidden="true"></span>Watched
+                </button>
+                <button class="nav-item" type="button" data-view="lists">
+                    <span class="nav-icon lists-icon" aria-hidden="true"></span>Lists
+                </button>
+                <button class="nav-item" type="button" data-view="settings">
+                    <span class="nav-icon settings-icon" aria-hidden="true"></span>Settings
+                </button>
+            </nav>
+        </aside>
+
+        <div class="content-panel">
+            <header class="topbar">
+                <label class="search-wrap">
+                    <input id="searchInput" type="search" placeholder="Search movies..." aria-label="Search movies">
+                </label>
+                <button id="addMovieButton" class="btn btn-primary" type="button">+ Add Movie</button>
+                <button id="logoutButton" class="btn btn-ghost" type="button">Sign out</button>
+            </header>
+
+            <main id="app">
+                <section id="dashboardView">
+                    <section class="featured-showcase" aria-label="Featured movie">
+                        <div class="poster-shell">
+                            <div class="movie-poster">
+                                <img id="featuredPoster" class="featured-poster" alt="" hidden>
+                                <div class="poster-overlay"></div>
+                                <div id="posterTitle" class="poster-title">CINETRACK</div>
+                            </div>
+                        </div>
+                        <div class="featured-copy">
+                            <span class="kicker">Your Collection</span>
+                            <h2 id="featuredTitle">Welcome to CineTrack</h2>
+                            <div class="movie-meta">
+                                <span id="featuredType">Add a movie or show to get started</span>
+                                <span id="featuredStatus" class="status-online" hidden>
+                                    <span class="status-dot"></span><span id="featuredStatusText"></span>
+                                </span>
+                            </div>
+                            <p id="featuredDescription" class="movie-description">
+                                Build your personal watchlist and keep track of what you have watched.
+                            </p>
+                            <div class="primary-actions">
+                                <button id="detailsButton" class="btn btn-primary btn-large" type="button" disabled>▶ View Details</button>
+                                <button id="editButton" class="btn btn-secondary btn-large" type="button" disabled>✎ Edit</button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="library-section" aria-labelledby="library-heading">
+                        <div class="section-heading">
+                            <h3 id="library-heading">My Collection</h3>
+                            <button id="viewAllButton" type="button" class="view-link">View All →</button>
+                        </div>
+                        <div id="watchlist" class="movie-grid" aria-live="polite">Loading...</div>
+                    </section>
+                </section>
+
+                <section id="settingsView" class="settings-panel" hidden>
+                    <span class="kicker">Account</span>
+                    <h2>Settings</h2>
+                    <p id="welcome"></p>
+                    <button id="settingsLogoutButton" class="btn btn-secondary" type="button">Sign out</button>
+                </section>
+
+                <section id="addFormPanel" class="add-form-panel" hidden>
+                    <div class="section-heading">
+                        <h3 id="formHeading">Add to your collection</h3>
+                        <button id="closeFormButton" class="view-link" type="button">Close</button>
+                    </div>
+                    <form id="addForm">
+                        <div class="title-search-field">
+                            <input type="text" id="title" placeholder="Film or TV show title" autocomplete="off" required>
+                            <p id="movieSearchStatus" class="movie-search-status" aria-live="polite"></p>
+                            <div id="movieSearchResults" class="movie-search-results" role="listbox" aria-label="Movie and show matches" hidden></div>
+                            <div id="selectedMoviePreview" class="selected-movie-preview" hidden>
+                                <img id="selectedMoviePoster" alt="">
+                                <div>
+                                    <strong id="selectedMovieTitle"></strong>
+                                    <span id="selectedMovieYear"></span>
+                                </div>
+                                <button id="clearMovieSelection" class="view-link" type="button">Change</button>
+                            </div>
+                        </div>
+                        <select id="mediaType" aria-label="Media type">
+                            <option value="movie">Film</option>
+                            <option value="tv">TV Series</option>
+                        </select>
+                        <select id="status" aria-label="Watch status">
+                            <option value="planned">Plan to watch</option>
+                            <option value="watching">Currently watching</option>
+                            <option value="watched">Watched</option>
+                        </select>
+                        <button id="saveItemButton" class="btn btn-primary" type="submit">Add to collection</button>
+                        <button id="cancelFormButton" class="btn btn-secondary" type="button">Cancel</button>
+                    </form>
+                    <p class="tmdb-attribution">Movie and TV data provided by TMDB. This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <dialog id="detailsDialog" class="details-dialog">
+        <button id="closeDetailsButton" class="dialog-close" type="button" aria-label="Close details">×</button>
+        <span class="kicker">Movie Details</span>
+        <div class="details-content">
+            <img id="detailsPoster" alt="" hidden>
+            <div>
+                <h2 id="detailsTitle"></h2>
+                <p id="detailsDescription"></p>
+            </div>
+        </div>
+        <button id="detailsDoneButton" class="btn btn-primary" type="button">Done</button>
+    </dialog>
+
+    <p id="message" role="status" aria-live="polite"></p>
+
+    <script src="js/supabase.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
