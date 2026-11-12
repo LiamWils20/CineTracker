@@ -74,6 +74,19 @@ function mapGame(game: Record<string, unknown>) {
     };
 }
 
+type SearchGame = ReturnType<typeof mapGame> & { id: number; title: string };
+
+function normalizeTitle(title: string): string {
+    return title.normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+}
+
+function titleMatchRank(title: string, query: string): number {
+    if (title === query) return 0;
+    if (title.startsWith(query)) return 1;
+    if (title.includes(query)) return 2;
+    return 3;
+}
+
 Deno.serve(async request => {
     if (request.method === "OPTIONS") {
         return new Response("ok", { headers: corsHeaders });
@@ -115,41 +128,62 @@ Deno.serve(async request => {
     }
 
     const endpoint = "https://api.igdb.com/v4/games";
-    const apicalypseQuery = gameId === undefined
-        ? `search "${query.replace(/[\r\n]/g, " ").replace(/\\/g, "\\\\").replace(/"/g, "\\\"")}"; fields id,name,cover.url,summary,first_release_date; limit 8;`
-        : `fields id,name,cover.url,summary,first_release_date; where id = ${Number(gameId)}; limit 1;`;
+    const fields = "fields id,name,cover.url,summary,first_release_date;";
+    const escapedQuery = query
+        .replace(/[\r\n]/g, " ")
+        .replace(/\\/g, "\\\\")
+        .replace(/"/g, "\\\"");
+    const apicalypseQueries = gameId === undefined
+        ? [
+            `${fields} where name = "${escapedQuery}"; limit 8;`,
+            `search "${escapedQuery}"; ${fields} limit 20;`
+        ]
+        : [`${fields} where id = ${Number(gameId)}; limit 1;`];
 
     try {
-        const response = await fetch(endpoint, {
-            method: "POST",
-            headers: {
-                "Client-ID": clientId,
-                Authorization: `Bearer ${accessToken}`,
-                Accept: "application/json",
-                "Content-Type": "text/plain"
-            },
-            body: apicalypseQuery
-        });
+        for (const apicalypseQuery of apicalypseQueries) {
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                    "Client-ID": clientId,
+                    Authorization: `Bearer ${accessToken}`,
+                    Accept: "application/json",
+                    "Content-Type": "text/plain"
+                },
+                body: apicalypseQuery
+            });
 
-        if (!response.ok) {
-            console.error(`IGDB request failed with status ${response.status}.`);
-            return jsonResponse({ error: "The game database search failed." }, 502);
+            if (!response.ok) {
+                console.error(`IGDB request failed with status ${response.status}.`);
+                return jsonResponse({ error: "The game database search failed." }, 502);
+            }
+
+            const result: unknown = await response.json();
+            const games = Array.isArray(result) ? result as Array<Record<string, unknown>> : [];
+            if (gameId !== undefined) {
+                const game = games[0];
+                if (!game) return jsonResponse({ error: "Game not found." }, 404);
+                return jsonResponse({ game: mapGame(game) });
+            }
+
+            const normalizedQuery = normalizeTitle(query);
+            const results = games
+                .map(mapGame)
+                .filter((game): game is SearchGame =>
+                    typeof game.id === "number" && typeof game.title === "string")
+                .map((game, index) => ({
+                    game,
+                    index,
+                    rank: titleMatchRank(normalizeTitle(game.title), normalizedQuery)
+                }))
+                .sort((a, b) => a.rank - b.rank || a.index - b.index)
+                .slice(0, 8)
+                .map(({ game }) => game);
+
+            if (results.length) return jsonResponse({ results });
         }
 
-        const result: unknown = await response.json();
-        const games = Array.isArray(result) ? result as Array<Record<string, unknown>> : [];
-        if (gameId !== undefined) {
-            const game = games[0];
-            if (!game) return jsonResponse({ error: "Game not found." }, 404);
-            return jsonResponse({ game: mapGame(game) });
-        }
-
-        const results = games
-            .slice(0, 8)
-            .map(mapGame)
-            .filter(game => typeof game.id === "number" && typeof game.title === "string");
-
-        return jsonResponse({ results });
+        return jsonResponse({ results: [] });
     } catch (error) {
         console.error("IGDB request could not be completed:", error);
         return jsonResponse({ error: "Could not reach the game database." }, 502);

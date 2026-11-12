@@ -469,7 +469,6 @@ function setView(view) {
     settingsView.hidden = !isSettings;
     addFormPanel.hidden = true;
     addGameFormPanel.hidden = true;
-    addMovieButton.hidden = isSettings;
     movieStatsPanel.hidden = isSettings || isGames;
     gameStatsPanel.hidden = !isGames;
     suggestFilmButton.hidden = view !== "planned";
