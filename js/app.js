@@ -7,6 +7,7 @@ const addMovieButton = document.getElementById("addMovieButton");
 const closeFormButton = document.getElementById("closeFormButton");
 const cancelFormButton = document.getElementById("cancelFormButton");
 const viewAllButton = document.getElementById("viewAllButton");
+const suggestFilmButton = document.getElementById("suggestFilmButton");
 const searchInput = document.getElementById("searchInput");
 const dashboardView = document.getElementById("dashboardView");
 const settingsView = document.getElementById("settingsView");
@@ -310,6 +311,7 @@ function setView(view) {
     dashboardView.hidden = isSettings;
     settingsView.hidden = !isSettings;
     addFormPanel.hidden = true;
+    suggestFilmButton.hidden = view !== "planned";
 
     document.querySelectorAll(".nav-item").forEach(button => {
         button.classList.toggle("active", button.dataset.view === view);
@@ -593,6 +595,17 @@ document.getElementById("editButton").addEventListener("click", () => {
 document.getElementById("viewAllButton").addEventListener("click", () => {
     searchInput.value = "";
     setView("lists");
+});
+suggestFilmButton.addEventListener("click", () => {
+    const candidates = items.filter(item => item.status !== "watched" && item.media_type === "movie");
+    if (!candidates.length) {
+        showMessage("There are no unwatched films in your watchlist to suggest.");
+        return;
+    }
+
+    showMessage("");
+    const suggestion = candidates[Math.floor(Math.random() * candidates.length)];
+    showDetails(suggestion);
 });
 document.getElementById("closeDetailsButton").addEventListener("click", () => detailsDialog.close());
 document.getElementById("detailsDoneButton").addEventListener("click", () => detailsDialog.close());

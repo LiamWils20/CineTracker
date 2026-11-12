@@ -29,7 +29,7 @@
                 <img src="Logo.png">
                 <div class="brand-copy">
                     <h1>CineTracker</h1>
-                    <small>Movie Tracker</small>
+                    <small>Track Your Titles</small>
                 </div>
             </div>
 
@@ -99,7 +99,10 @@
                     <section class="library-section" aria-labelledby="library-heading">
                         <div class="section-heading">
                             <h3 id="library-heading">My Collection</h3>
-                            <button id="viewAllButton" type="button" class="view-link">View All →</button>
+                            <div class="section-heading-actions">
+                                <button id="suggestFilmButton" class="btn btn-secondary" type="button" hidden>Suggest a Title</button>
+                                <button id="viewAllButton" type="button" class="view-link">View All →</button>
+                            </div>
                         </div>
                         <div id="watchlist" class="movie-grid" aria-live="polite">Loading...</div>
                     </section>

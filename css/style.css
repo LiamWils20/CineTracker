@@ -546,6 +546,17 @@ button {
     color: rgba(237, 137, 208, 0.95);
 }
 
+.section-heading-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.section-heading-actions .btn {
+    height: 42px;
+    padding: 0 14px;
+}
+
 .view-link {
     border: 0;
     background: transparent;
@@ -1009,6 +1020,10 @@ button {
 }
 
 @media (max-width: 640px) {
+    .section-heading {
+        flex-wrap: wrap;
+    }
+
     .topbar {
         flex-wrap: wrap;
     }
