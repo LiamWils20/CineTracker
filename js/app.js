@@ -469,8 +469,7 @@ function setView(view) {
     settingsView.hidden = !isSettings;
     addFormPanel.hidden = true;
     addGameFormPanel.hidden = true;
-    addMovieButton.hidden = isSettings || isGames;
-    addGameButton.hidden = !isGames;
+    addMovieButton.hidden = isSettings;
     movieStatsPanel.hidden = isSettings || isGames;
     gameStatsPanel.hidden = !isGames;
     suggestFilmButton.hidden = view !== "planned";
@@ -534,6 +533,7 @@ function openForm(item = null) {
     }
 
     dashboardView.hidden = true;
+    gamesView.hidden = true;
     settingsView.hidden = true;
     addFormPanel.hidden = false;
     titleInput.focus();
@@ -545,7 +545,8 @@ function closeForm() {
     editingItem = null;
     selectedMovie = null;
     addFormPanel.hidden = true;
-    dashboardView.hidden = currentView === "settings";
+    dashboardView.hidden = currentView === "settings" || isGameView(currentView);
+    gamesView.hidden = !isGameView(currentView);
     settingsView.hidden = currentView !== "settings";
     addForm.reset();
     movieSearchResults.replaceChildren();
