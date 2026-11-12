@@ -1,2 +1,5 @@
 [functions.search-movies]
 verify_jwt = true
+
+[functions.search-games]
+verify_jwt = true

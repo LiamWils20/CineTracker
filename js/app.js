@@ -4,16 +4,23 @@ const loginButton = document.getElementById("loginButton");
 const logoutButton = document.getElementById("logoutButton");
 const settingsLogoutButton = document.getElementById("settingsLogoutButton");
 const addMovieButton = document.getElementById("addMovieButton");
+const addGameButton = document.getElementById("addGameButton");
 const closeFormButton = document.getElementById("closeFormButton");
 const cancelFormButton = document.getElementById("cancelFormButton");
+const closeGameFormButton = document.getElementById("closeGameFormButton");
+const cancelGameFormButton = document.getElementById("cancelGameFormButton");
 const viewAllButton = document.getElementById("viewAllButton");
 const suggestFilmButton = document.getElementById("suggestFilmButton");
 const searchInput = document.getElementById("searchInput");
 const dashboardView = document.getElementById("dashboardView");
+const gamesView = document.getElementById("gamesView");
 const settingsView = document.getElementById("settingsView");
 const addFormPanel = document.getElementById("addFormPanel");
 const addForm = document.getElementById("addForm");
+const addGameFormPanel = document.getElementById("addGameFormPanel");
+const gameForm = document.getElementById("gameForm");
 const watchlist = document.getElementById("watchlist");
+const gameCollection = document.getElementById("gameCollection");
 const message = document.getElementById("message");
 const detailsDialog = document.getElementById("detailsDialog");
 const titleInput = document.getElementById("title");
@@ -22,15 +29,27 @@ const statusInput = document.getElementById("status");
 const movieSearchStatus = document.getElementById("movieSearchStatus");
 const movieSearchResults = document.getElementById("movieSearchResults");
 const selectedMoviePreview = document.getElementById("selectedMoviePreview");
+const gameTitleInput = document.getElementById("gameTitle");
+const gameStatusInput = document.getElementById("gameStatus");
+const gameSearchStatus = document.getElementById("gameSearchStatus");
+const gameSearchResults = document.getElementById("gameSearchResults");
+const selectedGamePreview = document.getElementById("selectedGamePreview");
+const movieStatsPanel = document.getElementById("movieStatsPanel");
+const gameStatsPanel = document.getElementById("gameStatsPanel");
 
 let currentUser = null;
 let items = [];
+let gameItems = [];
 let currentView = "home";
 let editingItem = null;
+let editingGame = null;
 let featuredItem = null;
 let selectedMovie = null;
+let selectedGame = null;
 let searchTimer = null;
+let gameSearchTimer = null;
 let movieSearchSequence = 0;
+let gameSearchSequence = 0;
 
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
 
@@ -58,6 +77,21 @@ function setPoster(image, posterPath, alt = "") {
     else image.removeAttribute("src");
 }
 
+function setGameCover(image, coverUrl, alt = "") {
+    const url = typeof coverUrl === "string" && coverUrl.startsWith("https://")
+        ? coverUrl
+        : "";
+    image.alt = alt;
+    image.hidden = !url;
+    image.onerror = () => {
+        image.hidden = true;
+        image.removeAttribute("src");
+    };
+
+    if (url) image.src = url;
+    else image.removeAttribute("src");
+}
+
 function showMessage(text) {
     message.textContent = text;
 }
@@ -69,6 +103,8 @@ function setAuthenticated(user) {
 
     if (!user) {
         items = [];
+        gameItems = [];
+        updateGameStats();
         return;
     }
 
@@ -141,14 +177,16 @@ async function checkUser() {
 
     const user = data.session?.user || null;
     setAuthenticated(user);
-    if (user) await loadWatchlist();
+    if (user) await Promise.all([loadWatchlist(), loadGameLibrary()]);
 }
 
 supabaseClient.auth.onAuthStateChange((event, session) => {
     if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
         setTimeout(async () => {
             setAuthenticated(session?.user || null);
-            if (session?.user) await loadWatchlist();
+            if (session?.user) {
+                await Promise.all([loadWatchlist(), loadGameLibrary()]);
+            }
         }, 0);
     }
 });
@@ -158,6 +196,16 @@ function updateStats() {
     document.getElementById("totalCount").textContent = items.length;
     document.getElementById("watchedCount").textContent = watched;
     document.getElementById("watchlistCount").textContent = items.length - watched;
+}
+
+function updateGameStats() {
+    document.getElementById("gameTotalCount").textContent = gameItems.length;
+    document.getElementById("gamePlayingCount").textContent =
+        gameItems.filter(game => game.status === "playing").length;
+    document.getElementById("gameCompletedCount").textContent =
+        gameItems.filter(game => game.status === "completed").length;
+    document.getElementById("gamePlannedCount").textContent =
+        gameItems.filter(game => game.status === "planned").length;
 }
 
 function updateFeatured() {
@@ -284,6 +332,93 @@ function renderWatchlist() {
     visibleItems.forEach(item => watchlist.appendChild(createCollectionCard(item)));
 }
 
+function gameStatusLabel(status) {
+    return status === "completed" ? "Completed" :
+        status === "playing" ? "Currently playing" : "Want to play";
+}
+
+function isGameView(view) {
+    return view === "games" || view === "games-playing" || view === "games-completed";
+}
+
+function createGameCard(game) {
+    const card = document.createElement("article");
+    card.className = "collection-card";
+
+    const cover = document.createElement("div");
+    cover.className = "collection-card__cover";
+    if (game.cover_url) {
+        const image = document.createElement("img");
+        image.loading = "lazy";
+        setGameCover(image, game.cover_url, `${game.title} cover`);
+        cover.appendChild(image);
+    } else {
+        cover.setAttribute("aria-hidden", "true");
+    }
+
+    const content = document.createElement("div");
+    content.className = "collection-card__content";
+
+    const title = document.createElement("h4");
+    title.textContent = game.title;
+
+    const details = document.createElement("p");
+    details.textContent = `Video game · ${gameStatusLabel(game.status)}`;
+
+    const actions = document.createElement("div");
+    actions.className = "card-actions";
+
+    const detailsButton = document.createElement("button");
+    detailsButton.type = "button";
+    detailsButton.className = "btn btn-secondary";
+    detailsButton.textContent = "Details";
+    detailsButton.addEventListener("click", () => showGameDetails(game));
+
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.className = "btn btn-secondary";
+    editButton.textContent = "Edit";
+    editButton.addEventListener("click", () => openGameForm(game));
+
+    const removeButton = document.createElement("button");
+    removeButton.type = "button";
+    removeButton.className = "btn btn-remove";
+    removeButton.textContent = "Remove";
+    removeButton.addEventListener("click", () => deleteGameItem(game.id));
+
+    actions.append(detailsButton, editButton, removeButton);
+    content.append(title, details, actions);
+    card.append(cover, content);
+    return card;
+}
+
+function renderGameLibrary() {
+    if (!gameCollection) return;
+
+    const query = searchInput.value.trim().toLocaleLowerCase();
+    const visibleGames = gameItems.filter(game =>
+        game.title.toLocaleLowerCase().includes(query) &&
+        (currentView === "games" ||
+            (currentView === "games-playing" && game.status === "playing") ||
+            (currentView === "games-completed" && game.status === "completed"))
+    );
+    gameCollection.replaceChildren();
+
+    if (!visibleGames.length) {
+        const empty = document.createElement("p");
+        empty.className = "empty-state";
+        if (gameItems.length) {
+            empty.textContent = "No games match this view or search.";
+        } else {
+            empty.textContent = "Your games library is empty. Add a game to get started.";
+        }
+        gameCollection.appendChild(empty);
+        return;
+    }
+
+    visibleGames.forEach(game => gameCollection.appendChild(createGameCard(game)));
+}
+
 async function loadWatchlist() {
     if (!currentUser) return;
 
@@ -305,13 +440,42 @@ async function loadWatchlist() {
     renderWatchlist();
 }
 
+async function loadGameLibrary() {
+    if (!currentUser) return;
+
+    gameCollection.textContent = "Loading...";
+    const { data, error } = await supabaseClient
+        .from("game_items")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+    if (error) {
+        showMessage(error.message);
+        gameCollection.textContent = "Couldn't load your games library.";
+        return;
+    }
+
+    gameItems = data || [];
+    updateGameStats();
+    renderGameLibrary();
+}
+
 function setView(view) {
     currentView = view;
     const isSettings = view === "settings";
-    dashboardView.hidden = isSettings;
+    const isGames = isGameView(view);
+    dashboardView.hidden = isSettings || isGames;
+    gamesView.hidden = !isGames;
     settingsView.hidden = !isSettings;
     addFormPanel.hidden = true;
+    addGameFormPanel.hidden = true;
+    addMovieButton.hidden = isSettings || isGames;
+    addGameButton.hidden = !isGames;
+    movieStatsPanel.hidden = isSettings || isGames;
+    gameStatsPanel.hidden = !isGames;
     suggestFilmButton.hidden = view !== "planned";
+    searchInput.placeholder = isGames ? "Search games..." : "Search movies...";
+    searchInput.setAttribute("aria-label", isGames ? "Search games" : "Search movies");
 
     document.querySelectorAll(".nav-item").forEach(button => {
         button.classList.toggle("active", button.dataset.view === view);
@@ -321,19 +485,28 @@ function setView(view) {
         home: "My Collection",
         planned: "To Watch",
         watched: "Watched",
-        lists: "All Movies"
+        lists: "All Movies",
+        games: "My Games",
+        "games-playing": "In Progress",
+        "games-completed": "Completed"
     };
-    if (headings[view]) {
+    if (isGames) {
+        document.getElementById("game-library-heading").textContent = headings[view];
+    } else if (headings[view]) {
         document.getElementById("library-heading").textContent = headings[view];
     }
     renderWatchlist();
+    renderGameLibrary();
 }
 
 document.querySelectorAll(".nav-item").forEach(button => {
     button.addEventListener("click", () => setView(button.dataset.view));
 });
 
-searchInput.addEventListener("input", renderWatchlist);
+searchInput.addEventListener("input", () => {
+    renderWatchlist();
+    renderGameLibrary();
+});
 
 function openForm(item = null) {
     editingItem = item;
@@ -384,6 +557,229 @@ function closeForm() {
 addMovieButton.addEventListener("click", () => openForm());
 closeFormButton.addEventListener("click", closeForm);
 cancelFormButton.addEventListener("click", closeForm);
+
+function openGameForm(game = null) {
+    editingGame = game;
+    selectedGame = game?.igdb_id ? {
+        id: game.igdb_id,
+        title: game.title,
+        cover_url: game.cover_url,
+        description: game.description,
+        release_date: game.release_date
+    } : null;
+    gameForm.reset();
+    gameSearchResults.replaceChildren();
+    gameSearchResults.hidden = true;
+    gameSearchStatus.textContent = "";
+    renderSelectedGame();
+    document.getElementById("gameFormHeading").textContent =
+        game ? "Edit game" : "Add a game";
+    document.getElementById("saveGameButton").textContent =
+        game ? "Save changes" : "Add to games";
+    if (game) {
+        gameTitleInput.value = game.title;
+        gameStatusInput.value = game.status;
+    }
+
+    dashboardView.hidden = true;
+    gamesView.hidden = true;
+    settingsView.hidden = true;
+    addFormPanel.hidden = true;
+    addGameFormPanel.hidden = false;
+    gameTitleInput.focus();
+}
+
+function closeGameForm() {
+    gameSearchSequence++;
+    window.clearTimeout(gameSearchTimer);
+    editingGame = null;
+    selectedGame = null;
+    addGameFormPanel.hidden = true;
+    gamesView.hidden = !isGameView(currentView);
+    dashboardView.hidden = currentView === "settings" || isGameView(currentView);
+    settingsView.hidden = currentView !== "settings";
+    gameForm.reset();
+    gameSearchResults.replaceChildren();
+    gameSearchResults.hidden = true;
+    gameSearchStatus.textContent = "";
+    selectedGamePreview.hidden = true;
+}
+
+addGameButton.addEventListener("click", () => openGameForm());
+closeGameFormButton.addEventListener("click", closeGameForm);
+cancelGameFormButton.addEventListener("click", closeGameForm);
+
+function renderSelectedGame() {
+    if (!selectedGame) {
+        selectedGamePreview.hidden = true;
+        return;
+    }
+
+    setGameCover(
+        document.getElementById("selectedGameCover"),
+        selectedGame.cover_url,
+        `${selectedGame.title} cover`
+    );
+    document.getElementById("selectedGameTitle").textContent = selectedGame.title;
+    document.getElementById("selectedGameYear").textContent =
+        selectedGame.release_date?.slice(0, 4) || "";
+    selectedGamePreview.hidden = false;
+}
+
+function renderGameSearchResults(results) {
+    gameSearchResults.replaceChildren();
+    gameSearchResults.hidden = !results.length;
+
+    results.forEach(game => {
+        const option = document.createElement("button");
+        option.type = "button";
+        option.className = "movie-search-result";
+        option.setAttribute("role", "option");
+
+        const image = document.createElement("img");
+        image.alt = "";
+        image.loading = "lazy";
+        setGameCover(image, game.cover_url);
+
+        const text = document.createElement("span");
+        text.className = "movie-search-result__text";
+        const title = document.createElement("strong");
+        title.textContent = game.title;
+        const year = document.createElement("small");
+        year.textContent = game.release_date?.slice(0, 4) || "Year unavailable";
+        text.append(title, year);
+        option.append(image, text);
+
+        option.addEventListener("click", async () => {
+            const sequence = ++gameSearchSequence;
+            selectedGame = game;
+            gameTitleInput.value = game.title;
+            gameSearchResults.replaceChildren();
+            gameSearchResults.hidden = true;
+            gameSearchStatus.textContent = "Loading game details...";
+            renderSelectedGame();
+
+            const { data, error } = await supabaseClient.functions.invoke("search-games", {
+                body: { gameId: game.id }
+            });
+            if (sequence !== gameSearchSequence) return;
+
+            if (error) {
+                gameSearchStatus.textContent = "Game selected; extra details could not be loaded.";
+                console.error("IGDB game details failed:", error);
+                return;
+            }
+
+            if (data?.game) {
+                selectedGame = { ...selectedGame, ...data.game };
+                renderSelectedGame();
+            }
+            gameSearchStatus.textContent = "Game selected.";
+        });
+
+        gameSearchResults.appendChild(option);
+    });
+}
+
+async function searchGames(query, sequence) {
+    gameSearchStatus.textContent = "Searching IGDB...";
+    gameSearchResults.hidden = true;
+
+    const { data, error } = await supabaseClient.functions.invoke("search-games", {
+        body: { query }
+    });
+
+    if (sequence !== gameSearchSequence) return;
+
+    if (error) {
+        gameSearchStatus.textContent =
+            "Game search isn't available. Check the Supabase function setup and try again.";
+        console.error("IGDB game search failed:", error);
+        return;
+    }
+
+    const results = Array.isArray(data?.results) ? data.results : [];
+    if (!results.length) {
+        gameSearchStatus.textContent = "No matches found. You can still add the game without a cover.";
+        return;
+    }
+
+    gameSearchStatus.textContent = "Choose a game to use its cover and details.";
+    renderGameSearchResults(results);
+}
+
+gameTitleInput.addEventListener("input", () => {
+    selectedGame = null;
+    renderSelectedGame();
+    gameSearchResults.replaceChildren();
+    gameSearchResults.hidden = true;
+    window.clearTimeout(gameSearchTimer);
+
+    const query = gameTitleInput.value.trim();
+    if (query.length < 2) {
+        gameSearchSequence++;
+        gameSearchStatus.textContent = "";
+        return;
+    }
+
+    const sequence = ++gameSearchSequence;
+    gameSearchTimer = window.setTimeout(() => searchGames(query, sequence), 350);
+});
+
+document.getElementById("clearGameSelection").addEventListener("click", () => {
+    selectedGame = null;
+    renderSelectedGame();
+    gameTitleInput.dispatchEvent(new Event("input"));
+    gameTitleInput.focus();
+});
+
+gameForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (!currentUser) return;
+
+    const gameData = {
+        title: gameTitleInput.value.trim(),
+        status: gameStatusInput.value
+    };
+    if (!gameData.title) return;
+
+    if (selectedGame) {
+        Object.assign(gameData, {
+            igdb_id: selectedGame.id,
+            cover_url: selectedGame.cover_url,
+            description: selectedGame.description,
+            release_date: selectedGame.release_date
+        });
+    } else if (editingGame && editingGame.title === gameData.title) {
+        Object.assign(gameData, {
+            igdb_id: editingGame.igdb_id,
+            cover_url: editingGame.cover_url,
+            description: editingGame.description,
+            release_date: editingGame.release_date
+        });
+    } else {
+        Object.assign(gameData, {
+            igdb_id: null,
+            cover_url: null,
+            description: null,
+            release_date: null
+        });
+    }
+
+    const request = editingGame
+        ? supabaseClient.from("game_items").update(gameData).eq("id", editingGame.id)
+        : supabaseClient.from("game_items").insert({ ...gameData, user_id: currentUser.id });
+
+    const { error } = await request;
+    if (error) {
+        showMessage(error.message);
+        return;
+    }
+
+    showMessage(editingGame ? "Game changes saved." : "Game added to your library.");
+    closeGameForm();
+    await loadGameLibrary();
+});
 
 function renderSelectedMovie() {
     if (!selectedMovie) {
@@ -569,7 +965,23 @@ async function deleteItem(id) {
     await loadWatchlist();
 }
 
+async function deleteGameItem(id) {
+    const { error } = await supabaseClient
+        .from("game_items")
+        .delete()
+        .eq("id", id);
+
+    if (error) {
+        showMessage(error.message);
+        return;
+    }
+
+    showMessage("Game removed from your library.");
+    await loadGameLibrary();
+}
+
 function showDetails(item) {
+    document.getElementById("detailsKicker").textContent = "Movie Details";
     document.getElementById("detailsTitle").textContent = item.title;
     document.getElementById("detailsDescription").textContent = [
         `${item.media_type === "tv" ? "TV Series" : "Film"} · ${
@@ -582,6 +994,21 @@ function showDetails(item) {
         document.getElementById("detailsPoster"),
         item.poster_path,
         `${item.title} poster`
+    );
+    detailsDialog.showModal();
+}
+
+function showGameDetails(game) {
+    document.getElementById("detailsKicker").textContent = "Game Details";
+    document.getElementById("detailsTitle").textContent = game.title;
+    document.getElementById("detailsDescription").textContent = [
+        `Video game · ${gameStatusLabel(game.status)}`,
+        game.release_date ? game.release_date.slice(0, 4) : ""
+    ].filter(Boolean).join(" · ") + (game.description ? `\n\n${game.description}` : "");
+    setGameCover(
+        document.getElementById("detailsPoster"),
+        game.cover_url,
+        `${game.title} cover`
     );
     detailsDialog.showModal();
 }

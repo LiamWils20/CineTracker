@@ -17,7 +17,7 @@
         <div class="login-card">
             <img class="brand-mark" src="Logo.png">
             <h1>CineTracker</h1>
-            <p>Keep all your movies and shows in one place.</p>
+            <p>Keep track of your movies, shows, and games.</p>
             <button id="loginButton" class="btn btn-primary" type="button">Sign in with Google</button>
             <p class="login-note">Sign in to view and manage your collection.</p>
         </div>
@@ -33,10 +33,16 @@
                 </div>
             </div>
 
-            <div class="stats-panel" aria-label="Collection statistics">
+            <div id="movieStatsPanel" class="stats-panel" aria-label="Movie and show statistics">
                 <div class="stat-item"><span>Total</span><strong id="totalCount">0</strong></div>
                 <div class="stat-item"><span>Watched</span><strong id="watchedCount">0</strong></div>
                 <div class="stat-item"><span>Watchlist</span><strong id="watchlistCount">0</strong></div>
+            </div>
+            <div id="gameStatsPanel" class="stats-panel" aria-label="Game statistics" hidden>
+                <div class="stat-item"><span>Total games</span><strong id="gameTotalCount">0</strong></div>
+                <div class="stat-item"><span>Playing</span><strong id="gamePlayingCount">0</strong></div>
+                <div class="stat-item"><span>Completed</span><strong id="gameCompletedCount">0</strong></div>
+                <div class="stat-item"><span>Want to play</span><strong id="gamePlannedCount">0</strong></div>
             </div>
 
             <nav class="sidebar-nav" aria-label="Main navigation">
@@ -52,6 +58,15 @@
                 <button class="nav-item" type="button" data-view="lists">
                     <span class="nav-icon lists-icon" aria-hidden="true"></span>Lists
                 </button>
+                <button class="nav-item" type="button" data-view="games">
+                    <span class="nav-icon lists-icon" aria-hidden="true"></span>Games
+                </button>
+                <button class="nav-item" type="button" data-view="games-playing">
+                    <span class="nav-icon lists-icon" aria-hidden="true"></span>In Progress
+                </button>
+                <button class="nav-item" type="button" data-view="games-completed">
+                    <span class="nav-icon watched-icon" aria-hidden="true"></span>Completed
+                </button>
                 <button class="nav-item" type="button" data-view="settings">
                     <span class="nav-icon settings-icon" aria-hidden="true"></span>Settings
                 </button>
@@ -61,9 +76,10 @@
         <div class="content-panel">
             <header class="topbar">
                 <label class="search-wrap">
-                    <input id="searchInput" type="search" placeholder="Search movies..." aria-label="Search movies">
+                    <input id="searchInput" type="search" placeholder="Search movies..." aria-label="Search collection">
                 </label>
                 <button id="addMovieButton" class="btn btn-primary" type="button">+ Add Movie</button>
+                <button id="addGameButton" class="btn btn-primary" type="button" hidden>+ Add Game</button>
                 <button id="logoutButton" class="btn btn-ghost" type="button">Sign out</button>
             </header>
 
@@ -108,11 +124,50 @@
                     </section>
                 </section>
 
+                <section id="gamesView" hidden>
+                    <section class="library-section" aria-labelledby="game-library-heading">
+                        <div class="section-heading">
+                            <h3 id="game-library-heading">My Games</h3>
+                        </div>
+                        <div id="gameCollection" class="movie-grid" aria-live="polite">Loading...</div>
+                    </section>
+                </section>
+
                 <section id="settingsView" class="settings-panel" hidden>
                     <span class="kicker">Account</span>
                     <h2>Settings</h2>
                     <p id="welcome"></p>
                     <button id="settingsLogoutButton" class="btn btn-secondary" type="button">Sign out</button>
+                </section>
+
+                <section id="addGameFormPanel" class="add-form-panel" hidden>
+                    <div class="section-heading">
+                        <h3 id="gameFormHeading">Add a game</h3>
+                        <button id="closeGameFormButton" class="view-link" type="button">Close</button>
+                    </div>
+                    <form id="gameForm">
+                        <div class="title-search-field">
+                            <input type="text" id="gameTitle" placeholder="Game title" autocomplete="off" required>
+                            <p id="gameSearchStatus" class="movie-search-status" aria-live="polite"></p>
+                            <div id="gameSearchResults" class="movie-search-results" role="listbox" aria-label="Game matches" hidden></div>
+                            <div id="selectedGamePreview" class="selected-movie-preview" hidden>
+                                <img id="selectedGameCover" alt="">
+                                <div>
+                                    <strong id="selectedGameTitle"></strong>
+                                    <span id="selectedGameYear"></span>
+                                </div>
+                                <button id="clearGameSelection" class="view-link" type="button">Change</button>
+                            </div>
+                        </div>
+                        <select id="gameStatus" aria-label="Game status">
+                            <option value="planned">Want to play</option>
+                            <option value="playing">Currently playing</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                        <button id="saveGameButton" class="btn btn-primary" type="submit">Add to games</button>
+                        <button id="cancelGameFormButton" class="btn btn-secondary" type="button">Cancel</button>
+                    </form>
+                    <p class="tmdb-attribution">Game data and cover art provided by <a href="https://www.igdb.com" target="_blank" rel="noopener noreferrer">IGDB</a>.</p>
                 </section>
 
                 <section id="addFormPanel" class="add-form-panel" hidden>
@@ -154,7 +209,7 @@
 
     <dialog id="detailsDialog" class="details-dialog">
         <button id="closeDetailsButton" class="dialog-close" type="button" aria-label="Close details">×</button>
-        <span class="kicker">Movie Details</span>
+        <span id="detailsKicker" class="kicker">Movie Details</span>
         <div class="details-content">
             <img id="detailsPoster" alt="" hidden>
             <div>
