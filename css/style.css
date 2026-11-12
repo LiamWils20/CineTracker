@@ -197,7 +197,6 @@ button {
     border-radius: 3px;
 }
 
-.watchlist-icon,
 .watched-icon,
 .lists-icon,
 .settings-icon {
@@ -208,7 +207,9 @@ button {
 .watchlist-icon::before,
 .watched-icon::before,
 .lists-icon::before,
-.settings-icon::before {
+.settings-icon::before,
+.game-planned-icon::before,
+.in-progress-icon::before {
     content: "";
     position: absolute;
     inset: 3px;
@@ -217,7 +218,17 @@ button {
 }
 
 .watched-icon {
-    border-color: rgba(96, 255, 170, 0.9);
+    border-color: rgb(0, 255, 119);
+}
+
+.game-planned-icon {
+    border: 2px solid rgb(255, 0, 0);
+    border-radius: 5px;
+}
+
+.in-progress-icon, .watchlist-icon {
+    border: 2px solid rgb(255, 174, 0);
+    border-radius: 5px;
 }
 
 .lists-icon {

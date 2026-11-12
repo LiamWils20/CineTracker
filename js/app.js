@@ -11,6 +11,8 @@ const closeGameFormButton = document.getElementById("closeGameFormButton");
 const cancelGameFormButton = document.getElementById("cancelGameFormButton");
 const viewAllButton = document.getElementById("viewAllButton");
 const suggestFilmButton = document.getElementById("suggestFilmButton");
+const suggestPlannedGameButton = document.getElementById("suggestPlannedGameButton");
+const suggestPlayingGameButton = document.getElementById("suggestPlayingGameButton");
 const searchInput = document.getElementById("searchInput");
 const dashboardView = document.getElementById("dashboardView");
 const gamesView = document.getElementById("gamesView");
@@ -338,7 +340,8 @@ function gameStatusLabel(status) {
 }
 
 function isGameView(view) {
-    return view === "games" || view === "games-playing" || view === "games-completed";
+    return view === "games" || view === "games-playing" ||
+        view === "games-planned" || view === "games-completed";
 }
 
 function createGameCard(game) {
@@ -400,6 +403,7 @@ function renderGameLibrary() {
         game.title.toLocaleLowerCase().includes(query) &&
         (currentView === "games" ||
             (currentView === "games-playing" && game.status === "playing") ||
+            (currentView === "games-planned" && game.status === "planned") ||
             (currentView === "games-completed" && game.status === "completed"))
     );
     gameCollection.replaceChildren();
@@ -472,6 +476,8 @@ function setView(view) {
     movieStatsPanel.hidden = isSettings || isGames;
     gameStatsPanel.hidden = !isGames;
     suggestFilmButton.hidden = view !== "planned";
+    suggestPlannedGameButton.hidden = view !== "games-planned";
+    suggestPlayingGameButton.hidden = view !== "games-playing";
     searchInput.placeholder = isGames ? "Search games..." : "Search movies...";
     searchInput.setAttribute("aria-label", isGames ? "Search games" : "Search movies");
 
@@ -486,6 +492,7 @@ function setView(view) {
         lists: "All Movies",
         games: "My Games",
         "games-playing": "In Progress",
+        "games-planned": "Want to Play",
         "games-completed": "Completed"
     };
     if (isGames) {
@@ -1034,6 +1041,19 @@ suggestFilmButton.addEventListener("click", () => {
     const suggestion = candidates[Math.floor(Math.random() * candidates.length)];
     showDetails(suggestion);
 });
+function suggestGame(status) {
+    const candidates = gameItems.filter(game => game.status === status);
+    if (!candidates.length) {
+        showMessage(`There are no ${status === "planned" ? "games you want to play" : "games in progress"} to suggest.`);
+        return;
+    }
+
+    showMessage("");
+    const suggestion = candidates[Math.floor(Math.random() * candidates.length)];
+    showGameDetails(suggestion);
+}
+suggestPlannedGameButton.addEventListener("click", () => suggestGame("planned"));
+suggestPlayingGameButton.addEventListener("click", () => suggestGame("playing"));
 document.getElementById("closeDetailsButton").addEventListener("click", () => detailsDialog.close());
 document.getElementById("detailsDoneButton").addEventListener("click", () => detailsDialog.close());
 

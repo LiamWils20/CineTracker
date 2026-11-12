@@ -56,20 +56,25 @@
                     <span class="nav-icon watched-icon" aria-hidden="true"></span>Watched
                 </button>
                 <button class="nav-item" type="button" data-view="lists">
-                    <span class="nav-icon lists-icon" aria-hidden="true"></span>Lists
+                    <span class="nav-icon lists-icon" aria-hidden="true"></span>Movie | Shows
                 </button>
-                <button class="nav-item" type="button" data-view="games">
-                    <span class="nav-icon lists-icon" aria-hidden="true"></span>Games
+                <button class="nav-item" type="button" data-view="games-planned">
+                    <span class="nav-icon game-planned-icon" aria-hidden="true"></span>Want to Play
                 </button>
                 <button class="nav-item" type="button" data-view="games-playing">
-                    <span class="nav-icon watchlist-icon" aria-hidden="true"></span>In Progress
+                    <span class="nav-icon in-progress-icon" aria-hidden="true"></span>In Progress
                 </button>
                 <button class="nav-item" type="button" data-view="games-completed">
                     <span class="nav-icon watched-icon" aria-hidden="true"></span>Completed
                 </button>
+                <button class="nav-item" type="button" data-view="games">
+                    <span class="nav-icon lists-icon" aria-hidden="true"></span>Games
+                </button>
+
                 <button class="nav-item" type="button" data-view="settings">
                     <span class="nav-icon settings-icon" aria-hidden="true"></span>Settings
                 </button>
+                
             </nav>
         </aside>
 
@@ -128,6 +133,10 @@
                     <section class="library-section" aria-labelledby="game-library-heading">
                         <div class="section-heading">
                             <h3 id="game-library-heading">My Games</h3>
+                            <div class="section-heading-actions">
+                                <button id="suggestPlannedGameButton" class="btn btn-secondary" type="button" hidden>Suggest a Title</button>
+                                <button id="suggestPlayingGameButton" class="btn btn-secondary" type="button" hidden>Suggest a Title</button>
+                            </div>
                         </div>
                         <div id="gameCollection" class="movie-grid" aria-live="polite">Loading...</div>
                     </section>
